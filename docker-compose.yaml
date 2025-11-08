@@ -1,0 +1,111 @@
+version: '3.9'
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      SA_PASSWORD: "12345678Ab"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    networks:
+      - train-network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 12345678Ab -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      retries: 10
+      timeout: 5s
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - train-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    container_name: jaeger
+    restart: always
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - train-network
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  trainservice:
+    build:
+      context: .
+      dockerfile: TrainService/Dockerfile
+    ports:
+      - "5001:8080"
+    expose:
+      - "8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__TrainDb=Server=sqlserver;Database=TrainDb;User Id=sa;Password=12345678Ab;TrustServerCertificate=True;
+    networks:
+      - train-network
+
+  scheduleservice:
+    build:
+      context: .
+      dockerfile: ScheduleService/Dockerfile
+    ports:
+      - "5002:8080"
+    expose:
+      - "8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      sqlserver:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__ScheduleDb=Server=sqlserver;Database=ScheduleDb;User Id=sa;Password=12345678Ab;TrustServerCertificate=True;
+      - RabbitMQ__Host=rabbitmq
+    networks:
+      - train-network
+
+  loggingservice:
+    build:
+      context: .
+      dockerfile: LoggingService/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - RabbitMQ__Host=rabbitmq
+    networks:
+      - train-network
+
+  apigateway:
+    build:
+      context: .
+      dockerfile: ApiGateway/Dockerfile
+    ports:
+      - "5000:8080"
+    depends_on:
+      - trainservice
+      - scheduleservice
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - train-network
+
+networks:
+  train-network:
+    driver: bridge
