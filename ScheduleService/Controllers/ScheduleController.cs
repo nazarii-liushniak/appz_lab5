@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScheduleService.Data;
 using Shared.Events;
-using ScheduleService.Models;
+using Shared.Models;
 
 namespace ScheduleService.Controllers
 {

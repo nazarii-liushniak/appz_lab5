@@ -1,4 +1,4 @@
-namespace ScheduleService.Models;
+namespace Shared.Models;
 
 public class Schedule
 {

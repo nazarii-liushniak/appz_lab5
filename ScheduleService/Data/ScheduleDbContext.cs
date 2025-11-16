@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ScheduleService.Models;
+using Shared.Models;
 
 namespace ScheduleService.Data;
 
