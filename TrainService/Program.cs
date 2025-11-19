@@ -32,8 +32,8 @@ builder.Services.AddMassTransit(x =>
         ));
 
         cfg.UseMessageRetry(r => r.Interval(5, TimeSpan.FromSeconds(10)));
-
         cfg.ConfigureEndpoints(context);
+        cfg.UseInstrumentation();
     });
 });
 
@@ -41,7 +41,9 @@ builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
 {
     tracerProviderBuilder.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("trainservice"))
                          .AddAspNetCoreInstrumentation()
+                         .AddHttpClientInstrumentation()
                          .AddEntityFrameworkCoreInstrumentation()
+                         .AddMassTransitInstrumentation()
                          .AddOtlpExporter(o => o.Endpoint = new Uri("http://jaeger:4317"));
 });
 

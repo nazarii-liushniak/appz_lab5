@@ -25,8 +25,8 @@ services:
     networks:
       - train-network
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
+      test: rabbitmq-diagnostics --quiet check_running && rabbitmq-diagnostics --quiet check_local_alarms
+      interval: 5s
       timeout: 5s
       retries: 5
   jaeger:

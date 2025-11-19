@@ -33,16 +33,25 @@ public class TrainController(TrainDbContext context, IPublishEndpoint publishEnd
     }
 
     [HttpPost]
-    public async Task<ActionResult<Train>> Create(Train train, [FromQuery] string? mode = null)
+    public async Task<ActionResult<Train>> Create(TrainCreate trainCreate, [FromQuery] string? mode = null)
     {
+        var train = new Train
+        {
+            TrainNumber = trainCreate.TrainNumber,
+            FromStation = trainCreate.FromStation,
+            ToStation = trainCreate.ToStation,
+            TrainType = trainCreate.TrainType
+        };
+
         _context.Trains.Add(train);
         await _context.SaveChangesAsync();
 
         var schedule = new Schedule
         {
             TrainId = train.Id,
-            DepartureTime = DateTime.MinValue,
-            ArrivalTime = DateTime.MinValue,
+            DepartureTime = trainCreate.DepartureTime,
+            ArrivalTime = trainCreate.ArrivalTime,
+            Status = trainCreate.Status
         };
 
         if (mode == "event")
